@@ -2,7 +2,6 @@
 
 Analytics case study submission 
 
-The full written deliverable is in [`deliverables/`](./deliverables/).
 
 ---
 
