@@ -1,0 +1,157 @@
+version: 2
+
+models:
+
+  - name: int_user_adoption_spine
+    description: >
+      Customer-day grain. Rolls up user-level activity from trf_user_daily_features
+      into account-level adoption signals. Intermediate model — not exposed directly
+      to end users. Feeds mart_customer_retention_risk.
+    columns:
+      - name: mr_customer_id
+        description: Unique customer identifier
+        tests:
+          - not_null
+
+      - name: measurement_date
+        description: Date of observation
+        tests:
+          - not_null
+
+      - name: seat_penetration_rate
+        description: >
+          % of paid seats with at least one active user today.
+          Surfaces the Observation B gap — accounts scoring 3/3 on feature breadth
+          may still have low penetration across their full seat count.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: full_breadth_penetration_rate
+        description: >
+          Of active users today, % who touched all three feature categories
+          (Research, Monitoring & Reporting, Relationship Management).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: addon_arr_pct
+        description: >
+          Add-on ARR (broadcast, keyhole, lexisnexis, managed, press release)
+          as a % of total ARR. High values flag accounts where retention risk
+          is not visible in platform usage data alone.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: arr
+        description: Total customer ARR
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+
+      - name: paid_users_sold
+        description: Licensed paid seats
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - mr_customer_id
+            - measurement_date
+
+
+  - name: mart_customer_retention_risk
+    description: >
+      Customer-day grain. Supplements Health Score v3 with three signals the
+      adoption-based score cannot capture: add-on ARR exposure at renewal,
+      seat-level breadth penetration, and activity relative to each customer's
+      own historical baseline. Intended for CS renewal prep and at-risk triage.
+      Not a replacement for v3 — a complementary view.
+    columns:
+      - name: mr_customer_id
+        description: Unique customer identifier
+        tests:
+          - not_null
+
+      - name: measurement_date
+        description: Date of observation
+        tests:
+          - not_null
+
+      - name: risk_tier
+        description: High / Medium / Low. See model logic for threshold definitions.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['High', 'Medium', 'Low']
+
+      - name: arr
+        description: Total customer ARR
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+
+      - name: addon_arr_pct
+        description: Add-on ARR as % of total ARR
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: seat_penetration_rate
+        description: >
+          % of paid seats active today. Core signal for Observation B —
+          accounts with large seat counts and low penetration are high risk
+          regardless of their v3 health score.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: full_breadth_penetration_rate
+        description: >
+          Of active users today, % who touched all three feature categories.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: activity_vs_baseline
+        description: >
+          Current percent_days_active minus the customer's own trailing 365-day
+          median. Negative values indicate below-baseline activity — accounts for
+          campaign cyclicality by using a customer-relative rather than absolute threshold.
+
+      - name: active_object_ratio
+        description: >
+          Ratio of actively-used objects (viewed in last 30 days) to total objects
+          created. Low ratios on large accounts signal ghost dashboards — objects
+          that exist but aren't part of anyone's workflow.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: primary_risk_reason
+        description: Human-readable flag for CS teams. Populated for High risk accounts only.
+
+      - name: days_to_renewal
+        description: Days until next renewal date
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - mr_customer_id
+            - measurement_date
