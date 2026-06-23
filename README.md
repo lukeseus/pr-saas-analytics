@@ -10,14 +10,17 @@ Analytics case study submission
 ```
 pr-saas-analytics/
 ├── sql/
-│   ├── 01_snowflake_setup.sql        # table definitions, file formats, stages
-│   └── 02_verify_and_observe.sql     # investigative queries for observations A, B, C
+│   ├── segment_score_distribution.sql   # observation A: health score vs NRR by segment
+│   ├── segment_add_on_arr.sql           # observation A: add-on ARR exposure by segment
+│   ├── segment_feature_breadth.sql      # observation B: seat utilization vs full-breadth penetration
+│   ├── seat_penetration.sql             # proposed new metric: seat penetration rate
+│   └── seasonal_net_periods.sql         # observation C: net positive periods volatility
 ├── models/
-│   ├── int_user_adoption_spine.sql   # intermediate model: user activity → account grain
-│   ├── mart_customer_retention_risk.sql  # proposed mart with risk tier logic
-│   └── schema.yml                    # column docs and dbt tests
+│   ├── int_user_adoption_spine.sql      # intermediate model: user activity → account grain
+│   ├── mart_customer_retention_risk.sql # proposed mart with risk tier logic
+│   └── schema.yml                       # column docs and dbt tests
 ├── seed_data/
-│   └── generate_seed_data.py         # generates synthetic CSVs matching case study schemas
+│   └── generate_seed_data.py            # generates synthetic CSVs matching case study schemas
 └── deliverables/
     └── muck_rack_case_study_luke_seus.pdf
 ```
